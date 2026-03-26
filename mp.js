@@ -3151,32 +3151,8 @@ function handleShortcutKey(rawK, e = null) {
     else if (k === ' ') { if (e) e.preventDefault(); mediaTogglePlay(); }
     else if (kl === 'g') { if (e) e.preventDefault(); mediaTogglePlay(); }
     else if (kl === 'o') mediaStop();
-    else if (kl === 'a') {
-        const item = queue[currentIndex];
-        if (item && currentIndex >= 0) {
-            getMediaDuration(item).then(dur => {
-                if (dur <= 0) return;
-                getCurrentMediaTime().then(curr => {
-                    const pct = curr / dur;
-                    const target = (Math.ceil(pct * 36 - 0.0001) - 1) / 36;
-                    mediaSeekToPercent(Math.max(0, target));
-                });
-            });
-        }
-    }
-    else if (kl === 's') {
-        const item = queue[currentIndex];
-        if (item && currentIndex >= 0) {
-            getMediaDuration(item).then(dur => {
-                if (dur <= 0) return;
-                getCurrentMediaTime().then(curr => {
-                    const pct = curr / dur;
-                    const target = (Math.ceil(pct * 72 - 0.0001) - 1) / 72;
-                    mediaSeekToPercent(Math.max(0, target));
-                });
-            });
-        }
-    }
+    else if (kl === 'a') mediaSeek(-30);
+    else if (kl === 's') mediaSeek(-10);
     else if (kl === 'd') mediaSeek(-5);
     else if (kl === 'f') mediaSeek(-2);
     else if (kl === 'y') {
@@ -3201,32 +3177,8 @@ function handleShortcutKey(rawK, e = null) {
     }
     else if (kl === 'h') mediaSeek(2);
     else if (kl === 'j') mediaSeek(5);
-    else if (kl === 'k') {
-        const item = queue[currentIndex];
-        if (item && currentIndex >= 0) {
-            getMediaDuration(item).then(dur => {
-                if (dur <= 0) return;
-                getCurrentMediaTime().then(curr => {
-                    const pct = curr / dur;
-                    const target = (Math.floor(pct * 72 + 0.0001) + 1) / 72;
-                    mediaSeekToPercent(Math.min(1, target));
-                });
-            });
-        }
-    }
-    else if (kl === 'l') {
-        const item = queue[currentIndex];
-        if (item && currentIndex >= 0) {
-            getMediaDuration(item).then(dur => {
-                if (dur <= 0) return;
-                getCurrentMediaTime().then(curr => {
-                    const pct = curr / dur;
-                    const target = (Math.floor(pct * 36 + 0.0001) + 1) / 36;
-                    mediaSeekToPercent(Math.min(1, target));
-                });
-            });
-        }
-    }
+    else if (kl === 'k') mediaSeek(10);
+    else if (kl === 'l') mediaSeek(30);
     else if (k === 'A') {
         if (queue.length > 0) {
             selectedIndices.clear();
@@ -4696,11 +4648,24 @@ if (document.getElementById('btn-change-thumb') && el.thumbInput) {
     document.getElementById('btn-change-thumb').onclick = () => el.thumbInput.click();
     el.thumbInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (file && currentIndex >= 0) {
+        if (file) {
+            const targetIdx = selectedListIndex >= 0 ? selectedListIndex : currentIndex;
+            if (targetIdx < 0 || !queue[targetIdx]) {
+                e.target.value = '';
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = (re) => {
-                queue[currentIndex].thumbnail = re.target.result;
-                // Update active thumbnail if it's currently selected
+                queue[targetIdx].thumbnail = re.target.result;
+                
+                // If the playing item's thumbnail was updated and we are on a file/local item
+                if (targetIdx === currentIndex && localImage && queue[currentIndex].type === 'file') {
+                    localImage.src = queue[currentIndex].thumbnail;
+                    localImage.style.display = 'block';
+                    localImage.style.zIndex = "5";
+                }
+                
                 renderQueue();
                 e.target.value = ''; // Reset
             };

@@ -84,41 +84,49 @@
                 </div>
             </div>
             <h3>ショートカットキー</h3>
-            <div class="help-sections">
-                <div class="help-section">
-                    <h4>再生・基本操作</h4>
-                    <ul class="help-list-compact">
-                        <li><span>G</span> 再生 / 一時停止</li>
-                        <li><span>Z / X / C / V</span> 最初 / 前曲 / 次曲 / 最後</li>
-                        <li><span>Q / E / W</span> ループ / 全体ループ / シャッフル</li>
-                        <li><span>[ / ]</span> 項目を 複製 / 削除</li>
-                    </ul>
+            <div class="keyboard-layout">
+                <div class="kbd-row">
+                    <kbd>Q<span>Loop</span></kbd>
+                    <kbd>W<span>Shuf</span></kbd>
+                    <kbd>E<span>Q-Loop</span></kbd>
+                    <kbd>R<span></span></kbd>
+                    <kbd>T<span>Time</span></kbd>
+                    <kbd>Y<span>Vol(Y%)</span></kbd>
+                    <kbd>U<span>URL</span></kbd>
+                    <kbd>I<span>File</span></kbd>
+                    <kbd>O<span>Stop</span></kbd>
+                    <kbd>P<span>Alarm</span></kbd>
+                    <kbd>[<span>Copy</span></kbd>
+                    <kbd>]<span>Del</span></kbd>
+                    <kbd>\\<span>End</span></kbd>
                 </div>
-                <div class="help-section">
-                    <h4>精密シーク</h4>
-                    <ul class="help-list-compact">
-                        <li><span>A / S / D / F</span> -1/36 / -1/72 / -5s / -2s</li>
-                        <li><span>H / J / K / L</span> +2s / +5s / +1/72 / +1/36</li>
-                        <li><span>\ (¥) / ,</span> 最後へ移動 / 指定秒数シーク</li>
-                    </ul>
+                <div class="kbd-row" style="margin-left:20px;">
+                    <kbd>A<span>-30s</span></kbd>
+                    <kbd>S<span>-10s</span></kbd>
+                    <kbd>D<span>-5s</span></kbd>
+                    <kbd>F<span>-2s</span></kbd>
+                    <kbd>G<span>Play/ll</span></kbd>
+                    <kbd>H<span>+2s</span></kbd>
+                    <kbd>J<span>+5s</span></kbd>
+                    <kbd>K<span>+10s</span></kbd>
+                    <kbd>L<span>+30s</span></kbd>
+                    <kbd>;<span>Memo(TS)</span></kbd>
+                    <kbd>'<span></span></kbd>
                 </div>
-                <div class="help-section">
-                    <h4>音量・ジャンプ</h4>
-                    <ul class="help-list-compact">
-                        <li><span>Shift + [1-0]</span> 指定位置(%)へシーク</li>
-                        <li><span>Y [+ 1-0... ]</span> 音量調整 (Y単体で0%)</li>
-                        <li><span>↑ / ↓</span> 音量調整 (±5%)</li>
-                    </ul>
+                <div class="kbd-row" style="margin-left:40px;">
+                    <kbd>Z<span>Top</span></kbd>
+                    <kbd>X<span>Prev</span></kbd>
+                    <kbd>C<span>Next</span></kbd>
+                    <kbd>V<span>End(V)</span></kbd>
+                    <kbd>B<span>Save</span></kbd>
+                    <kbd>N<span></span></kbd>
+                    <kbd>M<span>Monitor</span></kbd>
+                    <kbd>,<span>Seek(s)</span></kbd>
+                    <kbd>.<span></span></kbd>
+                    <kbd>/<span></span></kbd>
                 </div>
-                <div class="help-section">
-                    <h4>機能・ツール</h4>
-                    <ul class="help-list-compact">
-                        <li><span>Shift + T</span> タイムスタンプ表示</li>
-                        <li><span>Esc + M</span> モニター表示切替</li>
-
-                        <li><span>Ctrl + F</span> キュー内検索</li>
-                        <li><span>B / U / I / P</span> 保存 / URL / 📂 / ⏰</li>
-                    </ul>
+                <div class="kbd-row" style="align-items:center; justify-content:center; margin-top:10px;">
+                    <kbd style="width:200px;">Space<span>Play / Pause</span></kbd>
                 </div>
             </div>
 
@@ -333,15 +341,15 @@
 
                 <!-- Row 2: A S D F G H J K L -->
                 <div class="controls-row all-controls">
-                    <button class="btn" id="btn-seek-back30" title="-1/36">|←<small>A</small></button>
-                    <button class="btn" id="btn-seek-back10" title="-1/72">●←<small>S</small></button>
+                    <button class="btn" id="btn-seek-back30" title="-30s">-30s<small>A</small></button>
+                    <button class="btn" id="btn-seek-back10" title="-10s">-10s<small>S</small></button>
                     <button class="btn" id="btn-seek-back5" title="-5s">-5s<small>D</small></button>
                     <button class="btn" id="btn-seek-back" title="-2s">-2s<small>F</small></button>
                     <button class="btn" id="btn-pause" title="Play/Pause">▶/||<small>G</small></button>
                     <button class="btn" id="btn-seek-fwd" title="+2s">+2s<small>H</small></button>
                     <button class="btn" id="btn-seek-fwd5" title="+5s">+5s<small>J</small></button>
-                    <button class="btn" id="btn-seek-fwd10" title="+1/72">→●<small>K</small></button>
-                    <button class="btn" id="btn-seek-fwd30" title="+1/36">→|<small>L</small></button>
+                    <button class="btn" id="btn-seek-fwd10" title="+10s">+10s<small>K</small></button>
+                    <button class="btn" id="btn-seek-fwd30" title="+30s">+30s<small>L</small></button>
                 </div>
 
                 <!-- Row 3: Loop/Shuf/Copy/Del/IO/Lock -->
