@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YMP v0.2.0 - Yukic Music Player</title>
+    <title>YMP v0.2.1 - Yukic Music Player</title>
     <meta name="description"
         content="YouTube, SoundCloud, Vimeo に対応した高機能なウェブベースのミュージックプレイヤー。詳細なシーク操作やキュー管理、アラーム機能を搭載しています。">
     <meta name="theme-color" content="#3b82f6">
@@ -321,10 +321,16 @@
                         <span id="current-time">0:00</span> / <span id="duration">0:00</span>
                     </div>
                     <div class="title-row-main">
-                        <div class="tier-control" style="display:flex; align-items:center; gap:2px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:4px; padding:2px;">
-                            <button id="btn-now-tier-down" class="btn small-btn" style="padding:0.2rem 0.4rem; border:none; background:transparent;" title="Tier Down">⇩</button>
-                            <input type="number" id="now-tier" class="info-input" value="0" min="-999" max="1000" style="width:50px; text-align:center; font-weight:bold; font-size:0.9rem; padding:0; height:24px; -moz-appearance:textfield; appearance:textfield;">
-                            <button id="btn-now-tier-up" class="btn small-btn" style="padding:0.2rem 0.4rem; border:none; background:transparent;" title="Tier Up">⇧</button>
+                        <div class="tier-control"
+                            style="display:flex; align-items:center; gap:2px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:4px; padding:2px;">
+                            <button id="btn-now-tier-down" class="btn small-btn"
+                                style="padding:0.2rem 0.4rem; border:none; background:transparent;"
+                                title="Tier Down">⇩</button>
+                            <input type="number" id="now-tier" class="info-input" value="0" min="-999" max="1000"
+                                style="width:50px; text-align:center; font-weight:bold; font-size:0.9rem; padding:0; height:24px; -moz-appearance:textfield; appearance:textfield;">
+                            <button id="btn-now-tier-up" class="btn small-btn"
+                                style="padding:0.2rem 0.4rem; border:none; background:transparent;"
+                                title="Tier Up">⇧</button>
                         </div>
                         <input type="text" id="now-title" class="info-input title" placeholder="Song Title">
                     </div>
@@ -333,7 +339,8 @@
                         style="color: var(--text-muted); font-size: 0.9rem; resize: vertical; min-height: 2em;"></textarea>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
                         <input type="text" id="now-id" class="info-input" placeholder="Video ID / URL" style="flex:1;">
-                        <button id="btn-capture-thumb" class="btn small-btn" title="Capture Thumbnail from Player">📷</button>
+                        <button id="btn-capture-thumb" class="btn small-btn"
+                            title="Capture Thumbnail from Player">📷</button>
                         <button id="btn-change-thumb" class="btn small-btn" title="Set Thumbnail from File">🖼️</button>
                     </div>
                     <input type="file" id="thumb-input" style="display:none;" accept="image/*">
@@ -426,10 +433,16 @@
                                 style="flex: 1; min-width: 100px;">
                             <textarea id="add-memo" class="app-input add-input-large" placeholder="Memo" rows="1"
                                 style="flex: 1; min-width: 100px; resize: vertical; min-height: 2em; box-sizing: border-box;"></textarea>
-                            <div class="tier-control" style="display:flex; align-items:center; gap:2px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:4px; padding:2px;">
-                                <button id="btn-add-tier-down" class="btn small-btn" style="padding:0.2rem 0.4rem; border:none; background:transparent;" title="Tier Down">⇩</button>
-                                <input type="number" id="add-tier" class="app-input" value="0" min="-999" max="1000" style="width:50px; text-align:center; font-weight:bold; font-size:0.9rem; padding:0; height:24px; -moz-appearance:textfield; appearance:textfield;">
-                                <button id="btn-add-tier-up" class="btn small-btn" style="padding:0.2rem 0.4rem; border:none; background:transparent;" title="Tier Up">⇧</button>
+                            <div class="tier-control"
+                                style="display:flex; align-items:center; gap:2px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:4px; padding:2px;">
+                                <button id="btn-add-tier-down" class="btn small-btn"
+                                    style="padding:0.2rem 0.4rem; border:none; background:transparent;"
+                                    title="Tier Down">⇩</button>
+                                <input type="number" id="add-tier" class="app-input" value="0" min="-999" max="1000"
+                                    style="width:50px; text-align:center; font-weight:bold; font-size:0.9rem; padding:0; height:24px; -moz-appearance:textfield; appearance:textfield;">
+                                <button id="btn-add-tier-up" class="btn small-btn"
+                                    style="padding:0.2rem 0.4rem; border:none; background:transparent;"
+                                    title="Tier Up">⇧</button>
                             </div>
                         </div>
                     </div>

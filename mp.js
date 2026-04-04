@@ -100,92 +100,7 @@ function decodeChars(s) {
         .replace(/\\'/g, "'");
 }
 
-// Vocaloid曲キャッシュ（動的取得用）
-let vocaloidCache = [];
-let vocaloidCacheTime = 0;
-const VOCALOID_CACHE_DURATION = 30 * 60 * 1000; // 30分キャッシュ
 
-// Vocaloardから動的に曲を取得
-async function fetchVocaloidSongs() {
-    const now = Date.now();
-    // キャッシュが有効ならそれを使う
-    if (vocaloidCache.length > 0 && (now - vocaloidCacheTime) < VOCALOID_CACHE_DURATION) {
-        return vocaloidCache;
-    }
-
-    try {
-        // ランダムなページを選択（1-6）
-        const randomPage = Math.floor(Math.random() * 6) + 1;
-        const urls = [
-            `https://vocaloard.injpok.tokyo/?s=2&g=${randomPage}`,
-            `https://vocaloard.injpok.tokyo/?s=1&g=${randomPage}`,
-            `https://vocaloard.injpok.tokyo/?s=3&g=${randomPage}`
-        ];
-        const url = urls[Math.floor(Math.random() * urls.length)];
-
-        // CORSプロキシを使用
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
-        const html = data.contents;
-
-        // プレイリストURLからビデオIDを抽出
-        const playlistMatch = html.match(/watch_videos\?video_ids=([^"&]+)/);
-        if (playlistMatch) {
-            const ids = playlistMatch[1].split(',').filter(id => id.length === 11);
-            vocaloidCache = ids.map(id => ({ id, title: 'Loading...', author: 'Vocaloid' }));
-            vocaloidCacheTime = now;
-            return vocaloidCache;
-        }
-
-        // 個別リンクからも抽出を試みる
-        const linkMatches = html.matchAll(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/g);
-        const ids = [...new Set([...linkMatches].map(m => m[1]))];
-        if (ids.length > 0) {
-            vocaloidCache = ids.map(id => ({ id, title: 'Loading...', author: 'Vocaloid' }));
-            vocaloidCacheTime = now;
-            return vocaloidCache;
-        }
-    } catch (e) {
-        console.warn('Vocaloard fetch failed:', e);
-    }
-
-    // フォールバック: 静的リスト
-    return [
-        { id: "bB7XYri8O4c", title: "千本桜", author: "黒うさP" },
-        { id: "1urGM6LFpQ", title: "メルト", author: "ryo" },
-        { id: "Mqps4anhz0Q", title: "ワールドイズマイン", author: "ryo" },
-        { id: "HOz-9FzIDf0", title: "マトリョシカ", author: "ハチ" },
-        { id: "Ej8EaLF382c", title: "砂の惑星", author: "ハチ" },
-        { id: "e-U0Yb0c-50", title: "シャルル", author: "バルーン" },
-        { id: "dJf4wCdLU18", title: "ロキ", author: "みきとP" },
-        { id: "hxSg2Ioz3LM", title: "ダブルラリアット", author: "アゴアニキP" },
-        { id: "gcS04BI2sbk", title: "ローリンガール", author: "wowaka" },
-        { id: "L5guLvJhxi4", title: "アンノウン・マザーグース", author: "wowaka" },
-        { id: "Ahq6qe_kBYg", title: "KING", author: "Kanaria" },
-        { id: "dHXC_ahjtEE", title: "酔いどれ知らず", author: "Kanaria" },
-        { id: "-wNRC69Ypco", title: "ヒバナ", author: "DECO*27" },
-        { id: "HOz-9FzIDf0", title: "ゴーストルール", author: "DECO*27" },
-        { id: "Njd3RTSu5jk", title: "ラビットホール", author: "DECO*27" },
-        { id: "fJjD7rqcLqY", title: "ヴァンパイア", author: "DECO*27" },
-        { id: "iP1EAgXd42s", title: "たびだちのうた", author: "烏屋茶房" },
-        { id: "STBoCK69vVQ", title: "スポットレイト", author: "稲葉曇" },
-        { id: "cF91xil98Mc", title: "CONNECT:COMMUNE", author: "FLAVOR FOLEY" },
-        { id: "w44WoaDCFJQ", title: "KAWAII100%", author: "めろくる" },
-        { id: "lccaBSbyAs8", title: "プシュケー", author: "wotaku" },
-        { id: "FvOpPeKSf_4", title: "強風オールバック", author: "ゆこぴ" },
-        { id: "r80-XbeMvC8", title: "可愛くてごめん", author: "HoneyWorks" },
-        { id: "egcUvLgE1dU", title: "神っぽいな", author: "ピノキオピー" },
-        { id: "xPSEPhkPRkY", title: "すろぉもぉしょん", author: "ピノキオピー" },
-        { id: "OxmHkzkRV9Q", title: "ノンブレス・オブリージュ", author: "ピノキオピー" },
-        { id: "7g6PN7JfpGE", title: "転生林檎", author: "ピノキオピー" },
-        { id: "TBREQMI_MdU", title: "フォニイ", author: "ツミキ" },
-        { id: "HXmOr3cXcqI", title: "トンデモワンダーズ", author: "sasakure.UK" },
-        { id: "OvE_0Tq7Q_k", title: "ビターチョコデコレーション", author: "syudou" },
-        { id: "kzOhbI1uGv8", title: "キュートなカノジョ", author: "syudou" },
-        { id: "9Xzs_TG9LI8", title: "命に嫌われている", author: "カンザキイオリ" }
-    ];
-}
 
 // Time tracking
 let cumulativeSeconds = 0;
@@ -2128,27 +2043,7 @@ if (el.addTier) {
     };
 }
 
-document.getElementById('btn-recommend-vocaloid').onclick = async () => {
-    const btn = document.getElementById('btn-recommend-vocaloid');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Loading...';
-    btn.disabled = true;
 
-    try {
-        const songs = await fetchVocaloidSongs();
-        // 30曲をランダムに追加（重複を避けてシャッフル）
-        const shuffled = [...songs].sort(() => Math.random() - 0.5);
-        const toAdd = shuffled.slice(0, Math.min(30, shuffled.length));
-        for (const item of toAdd) {
-            addToQueue(item.id, item.title, item.author);
-        }
-    } catch (e) {
-        console.error('Vocaloid fetch error:', e);
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-};
 el.addUrl.oninput = () => {
     const val = el.addUrl.value;
     if (val.includes('http') || val.includes('youtube.com') || val.includes('youtu.be')) {
@@ -4175,141 +4070,11 @@ function initClock() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initClock();
-        initProgressMarkers();
     });
 } else {
     initClock();
-    initProgressMarkers();
 }
 
-// Progress Bar 36-Division Markers
-function initProgressMarkers() {
-    const pContainer = document.getElementById('progress-container');
-    if (!pContainer) return;
-
-    if (document.getElementById('progress-markers-wrapper')) {
-        document.getElementById('progress-markers-wrapper').remove();
-    }
-
-    const wrapper = document.createElement('div');
-    wrapper.id = 'progress-markers-wrapper';
-
-    // PC/スマホ共通でコンテナのoverflowをvisibleにする（マーカー表示のため）
-    pContainer.style.position = 'relative';
-    pContainer.style.overflow = 'visible';
-
-    if (isTouchDevice) {
-        // スマホ用: バーの上に重ねる
-        Object.assign(wrapper.style, {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: '5'
-        });
-        pContainer.appendChild(wrapper);
-    } else {
-        // PC用: 下に配置
-        Object.assign(wrapper.style, {
-            position: 'relative',
-            width: '100%',
-            height: '24px',
-            marginTop: '2px',
-            pointerEvents: 'none'
-        });
-        pContainer.parentNode.insertBefore(wrapper, pContainer.nextSibling);
-    }
-
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\'];
-
-    for (let i = 0; i <= 36; i++) {
-        const marker = document.createElement('div');
-        const pct = (i / 36) * 100;
-
-        Object.assign(marker.style, {
-            position: 'absolute',
-            left: `${pct}%`,
-            top: '0',
-            width: '1px',
-            height: isTouchDevice ? '100%' : '10px',
-            background: isTouchDevice ? 'rgba(255,255,255,0.4)' : 'var(--text-muted, #aaa)',
-            transform: 'translateX(-50%)',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            zIndex: '5',
-            transition: isTouchDevice ? 'none' : 'background 0.1s, height 0.1s'
-        });
-
-        const markerDot = document.createElement('div');
-        Object.assign(markerDot.style, {
-            position: 'absolute',
-            left: '50%',
-            top: isTouchDevice ? '50%' : '3px',
-            width: '4px',
-            height: '4px',
-            background: isTouchDevice ? '#fff' : 'var(--text-muted, #aaa)',
-            borderRadius: '50%',
-            transform: isTouchDevice ? 'translate(-50%, -50%)' : 'translateX(-50%)',
-            pointerEvents: 'none'
-        });
-        marker.appendChild(markerDot);
-
-        if (!isTouchDevice) {
-            marker.onmouseover = () => {
-                marker.style.background = 'var(--primary, #f00)';
-                markerDot.style.background = 'var(--primary, #f00)';
-                marker.style.height = '14px';
-            };
-            marker.onmouseout = () => {
-                marker.style.background = 'var(--text-muted, #aaa)';
-                markerDot.style.background = 'var(--text-muted, #aaa)';
-                marker.style.height = '10px';
-            };
-        }
-
-        marker.onclick = (e) => {
-            e.stopPropagation();
-            mediaSeekToPercent(i / 36);
-        };
-        wrapper.appendChild(marker);
-
-        if (i < 36) {
-            const dot = document.createElement('div');
-            const dotPct = ((i + 0.5) / 36) * 100;
-            Object.assign(dot.style, {
-                position: 'absolute',
-                left: `${dotPct}%`,
-                top: isTouchDevice ? '50%' : '3px',
-                width: '4px',
-                height: '4px',
-                background: isTouchDevice ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.3)',
-                borderRadius: '50%',
-                transform: isTouchDevice ? 'translate(-50%, -50%)' : 'translateX(-50%)',
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                zIndex: '4',
-                transition: isTouchDevice ? 'none' : 'background 0.1s, transform 0.1s'
-            });
-            if (!isTouchDevice) {
-                dot.onmouseover = () => {
-                    dot.style.background = 'var(--accent, #ffd700)';
-                    dot.style.transform = 'translateX(-50%) scale(1.5)';
-                };
-                dot.onmouseout = () => {
-                    dot.style.background = 'rgba(255, 255, 255, 0.3)';
-                    dot.style.transform = 'translateX(-50%) scale(1)';
-                };
-            }
-            dot.onclick = (e) => {
-                e.stopPropagation();
-                mediaSeekToPercent((i + 0.5) / 36);
-            };
-            wrapper.appendChild(dot);
-        }
-    }
-}
 
 
 // Ensure all tiers are updated to new format (★ -> ＊) on load
