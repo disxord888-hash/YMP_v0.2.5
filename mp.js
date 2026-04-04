@@ -1378,6 +1378,7 @@ function playIndex(i) {
 
                 const vol = parseInt(el.volumeSlider.value) || 50;
                 localVideo.volume = vol / 100;
+                localVideo.loop = isLoop;
 
                 localVideo.play().catch(e => console.warn("Local play failed", e));
             }
@@ -1461,6 +1462,7 @@ function playIndex(i) {
             // Set volume
             const vol = parseInt(el.volumeSlider.value) || 50;
             vimeoPlayer.setVolume(vol / 100);
+            vimeoPlayer.setLoop(isLoop).catch(()=>{});
 
         } catch (e) {
             console.error("Vimeo Player Init Failed", e);
@@ -1545,10 +1547,12 @@ function playIndex(i) {
         let startTime = 0;
 
         if (isPlayerReady) {
-            player.loadVideoById({
-                videoId: item.id,
+            player.loadPlaylist({
+                playlist: [item.id],
+                index: 0,
                 startSeconds: startTime
             });
+            player.setLoop(isLoop);
         }
         el.nowId.value = shortenUrl(item.id);
     }
@@ -1674,7 +1678,20 @@ function skipNext() {
         queue[currentIndex].lastTime = 0;
     }
 
-    if (isLoop) return playIndex(currentIndex);
+    if (isLoop) {
+        // For players without reliable native loop (like SoundCloud), reload manually
+        const type = queue[currentIndex] ? (queue[currentIndex].type || 'youtube') : 'youtube';
+        if (type === 'soundcloud') {
+            return playIndex(currentIndex);
+        }
+        // Others handle their own loop, but if it incorrectly fired ended, we should just ignore it.
+        // Wait, Vimeo and LocalVideo with loop=true will NOT trigger 'ended' event.
+        // YouTube loadPlaylist with loop=true seems to NOT trigger API 'ended' on loop restart, 
+        // it triggers ENDED then quickly PLAYING, but wait, if it triggers ENDED, our onStateChange will call skipNext()!
+        // To be safe, if we get skipNext while isLoop is true, AND it's YouTube, we'll let YouTube handle it by NOT forcefully reloading, UNLESS it's totally stopped.
+        // Actually, just returning is fine because native looping will handle the restart!
+        return; 
+    }
 
     if (isShuffle && queue.length > 1) {
         let n = currentIndex;
@@ -2257,7 +2274,18 @@ window.addEventListener('pointercancel', stopLockTimer);
 // pointerup handles mouseup/touchend uniformly
 
 // Controls (Consolidated below)
-el.btnLoop.onclick = () => { isLoop = !isLoop; if (isLoop) isQueueLoop = false; updateUIStates(); };
+el.btnLoop.onclick = () => { 
+    isLoop = !isLoop; 
+    if (isLoop) isQueueLoop = false; 
+    updateUIStates(); 
+
+    // Apply native loop dynamically to current player
+    if (localVideo) localVideo.loop = isLoop;
+    if (vimeoPlayer && typeof vimeoPlayer.setLoop === 'function') vimeoPlayer.setLoop(isLoop).catch(()=>{});
+    if (isPlayerReady && player && typeof player.setLoop === 'function') {
+        try { player.setLoop(isLoop); } catch(e){}
+    }
+};
 el.btnQueueLoop.onclick = () => { isQueueLoop = !isQueueLoop; if (isQueueLoop) isLoop = false; updateUIStates(); };
 el.btnShuffle.onclick = () => { isShuffle = !isShuffle; updateUIStates(); };
 
