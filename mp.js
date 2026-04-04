@@ -17,6 +17,8 @@ let selectedListIndex = -1;
 let selectedIndices = new Set();
 let selectionAnchor = -1;
 let alarmConfig = { enabled: false, time: '', target: '', triggered: false };
+let sleepTimerConfig = { enabled: false, remainingSeconds: 0, totalSeconds: 0 };
+let sleepTimerInterval = null;
 let player = null;
 let scWidget = null;
 let vimeoPlayer = null;
@@ -1917,30 +1919,64 @@ const takeScreenshot = openScreenshotModal; // Alias for backward compatibility 
 // Custom Tier Label Logic - Removed
 
 
-// GitHub Share Link Generator - Modal Version
-let currentShareData = '';
-
-function getShareableQueue() {
+// Compact share format: songs separated by ","
+// YouTube: {11-char-id} or {id}~{tier}
+// Vimeo: V:{vimeo-id} or V:{vimeo-id}~{tier}
+// SoundCloud: S:{url} or S:{url}~{tier}
+function encodeShareData() {
     const shareableTypes = ['youtube', 'soundcloud', 'vimeo'];
-    return queue
-        .filter(item => shareableTypes.includes(item.type || 'youtube'))
-        .map(item => ({
-            id: item.id,
-            type: item.type || 'youtube',
-            title: item.title,
-            author: item.author,
-            tier: item.tier
-        }));
+    const items = queue.filter(item => shareableTypes.includes(item.type || 'youtube'));
+    return items.map(item => {
+        let token = '';
+        const type = item.type || 'youtube';
+        if (type === 'soundcloud') {
+            token = 'S:' + item.id;
+        } else if (type === 'vimeo') {
+            const vid = extractVimeoId(item.id) || item.id;
+            token = 'V:' + vid;
+        } else {
+            // YouTube: just the ID
+            token = extractId(item.id) || item.id;
+        }
+        const tier = parseInt(item.tier) || 0;
+        if (tier !== 0) token += '~' + tier;
+        return token;
+    }).join(',');
+}
+
+function decodeShareData(compact) {
+    return compact.split(',').filter(t => t).map(token => {
+        let tierStr = '0';
+        let body = token;
+        const tildeIdx = token.lastIndexOf('~');
+        if (tildeIdx > 0) {
+            const maybeTier = token.substring(tildeIdx + 1);
+            if (/^-?\d+$/.test(maybeTier)) {
+                tierStr = maybeTier;
+                body = token.substring(0, tildeIdx);
+            }
+        }
+        let type = 'youtube', id = body;
+        if (body.startsWith('S:')) {
+            type = 'soundcloud';
+            id = body.substring(2);
+        } else if (body.startsWith('V:')) {
+            type = 'vimeo';
+            id = body.substring(2);
+        }
+        return { id, type, title: 'Loading...', author: '', tier: tierStr, lastTime: 0, duration: 0, memo: '' };
+    });
 }
 
 function openShareLinkModal() {
-    const shareableQueue = getShareableQueue();
-    if (shareableQueue.length === 0) {
+    const shareableTypes = ['youtube', 'soundcloud', 'vimeo'];
+    const count = queue.filter(item => shareableTypes.includes(item.type || 'youtube')).length;
+    if (count === 0) {
         alert("共有可能な曲（YouTube/SoundCloud/Vimeo）がありません。");
         return;
     }
-    currentShareData = encodeURIComponent(JSON.stringify(shareableQueue));
-    document.getElementById('share-link-output').value = `${shareableQueue.length}曲を共有準備中...\n上のボタンでリンクを生成してください。`;
+    currentShareData = encodeURIComponent(encodeShareData());
+    document.getElementById('share-link-output').value = `${count}曲を共有準備中...\n上のボタンでリンクを生成してください。`;
     document.getElementById('share-link-modal').classList.add('active');
 }
 
@@ -2957,48 +2993,53 @@ document.getElementById('url-import-btn').onclick = () => {
 
     try {
         // Extract ?= parameter from URL
-        let jsonStr = '';
+        let dataStr = '';
         if (input.includes('?=')) {
             const startIdx = input.indexOf('?=') + 2;
-            jsonStr = decodeURIComponent(input.substring(startIdx));
+            dataStr = decodeURIComponent(input.substring(startIdx));
         } else {
-            // Try parsing as raw JSON
-            jsonStr = input;
+            dataStr = input;
         }
 
-        const importedQueue = JSON.parse(jsonStr);
+        let importedItems = [];
 
-        if (Array.isArray(importedQueue) && importedQueue.length > 0) {
-            const validTypes = ['youtube', 'soundcloud', 'vimeo'];
-            const sanitized = importedQueue
-                .filter(item => item.id && validTypes.includes(item.type || 'youtube'))
-                .map(item => ({
-                    id: item.id,
-                    type: item.type || 'youtube',
-                    title: item.title || 'Untitled',
-                    author: item.author || 'Unknown',
-                    tier: item.tier || '×',
-                    lastTime: 0,
-                    duration: 0,
-                    memo: ''
-                }));
-
-            if (sanitized.length > 0) {
-                queue = [...queue, ...sanitized];
-                renderQueue();
-                alert(`${sanitized.length}曲をインポートしました。`);
-                document.getElementById('url-import-modal').classList.remove('active');
-            } else {
-                alert("インポート可能な曲が見つかりませんでした。");
+        // Try legacy JSON format first
+        if (dataStr.trimStart().startsWith('[')) {
+            const parsed = JSON.parse(dataStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                const validTypes = ['youtube', 'soundcloud', 'vimeo'];
+                importedItems = parsed
+                    .filter(item => item.id && validTypes.includes(item.type || 'youtube'))
+                    .map(item => ({
+                        id: item.id,
+                        type: item.type || 'youtube',
+                        title: item.title || 'Loading...',
+                        author: item.author || '',
+                        tier: item.tier || '0',
+                        lastTime: 0,
+                        duration: 0,
+                        memo: ''
+                    }));
             }
         } else {
-            alert("有効なキューデータが見つかりませんでした。");
+            // New compact format
+            importedItems = decodeShareData(dataStr);
+        }
+
+        if (importedItems.length > 0) {
+            queue = [...queue, ...importedItems];
+            renderQueue();
+            alert(`${importedItems.length}曲をインポートしました。`);
+            document.getElementById('url-import-modal').classList.remove('active');
+        } else {
+            alert("インポート可能な曲が見つかりませんでした。");
         }
     } catch (e) {
         console.error('URL Import failed:', e);
         alert("URLの解析に失敗しました。形式を確認してください。");
     }
 };
+
 
 // Shortcuts Help
 el.helpBtn.onclick = () => el.helpModal.classList.toggle('active');
@@ -3035,6 +3076,7 @@ function handleShortcutKey(rawK, e = null) {
     else if (k === ' ') { if (e) e.preventDefault(); mediaTogglePlay(); }
     else if (kl === 'g') { if (e) e.preventDefault(); mediaTogglePlay(); }
     else if (kl === 'o') mediaStop();
+    else if (kl === 'r') { if (e) e.preventDefault(); openSleepTimerSettings(); }
     else if (kl === 'a') mediaSeek(-30);
     else if (kl === 's') mediaSeek(-10);
     else if (kl === 'd') mediaSeek(-5);
@@ -3080,15 +3122,7 @@ function handleShortcutKey(rawK, e = null) {
     else if (k === '.') {
         // Clear logic for dot as it's now on K
     }
-    else if (k === '\\') { // ジャンプ（最後）
-        if (e) e.preventDefault();
-        const item = queue[currentIndex];
-        if (item && currentIndex >= 0) {
-            getMediaDuration(item).then(dur => {
-                if (dur > 0) mediaSeekTo(dur - 0.1);
-            });
-        }
-    }
+
     if (kl === 't') {
         if (e) e.preventDefault();
         tPrefixCount++;
@@ -3132,7 +3166,7 @@ function handleShortcutKey(rawK, e = null) {
     }
 
     if (yPrefixCount > 0) {
-        const yKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\', '¥'];
+        const yKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-'];
         if (yKeys.includes(k)) {
             if (e) e.preventDefault();
 
@@ -3145,10 +3179,6 @@ function handleShortcutKey(rawK, e = null) {
 
             if (volMap[k] !== undefined) {
                 targetVol = volMap[k];
-            } else if (k === '^') {
-                targetVol = Math.max(0, currentVol - 5);
-            } else if (k === '\\' || k === '¥') {
-                targetVol = Math.min(100, currentVol + 5);
             }
             updateVolume(targetVol);
 
@@ -3464,6 +3494,20 @@ function mediaTogglePlay() {
         if (!player || typeof player.getPlayerState !== 'function') return;
         const state = player.getPlayerState();
         if (state === 1) player.pauseVideo(); else player.playVideo();
+    }
+}
+
+function mediaPause() {
+    if (currentIndex < 0) return;
+    const item = queue[currentIndex];
+    if (item.type === 'file') {
+        if (localVideo) localVideo.pause();
+    } else if (item.type === 'vimeo') {
+        if (vimeoPlayer) vimeoPlayer.pause();
+    } else if (item.type === 'soundcloud') {
+        if (scWidget) scWidget.pause();
+    } else {
+        if (player && typeof player.pauseVideo === 'function') player.pauseVideo();
     }
 }
 
@@ -4266,6 +4310,106 @@ async function triggerAlarm() {
 
 // Reset trigger flag when minute changes (if we wanted repeating alarm)
 // For now, it disables itself, so no need.
+
+// ===== Sleep Timer Logic =====
+function openSleepTimerSettings() {
+    const modal = document.getElementById('sleep-timer-modal');
+    if (!modal) return;
+    updateSleepTimerStatusUI();
+    modal.classList.add('active');
+    document.getElementById('sleep-timer-input').focus();
+}
+
+function updateSleepTimerStatusUI() {
+    const statusEl = document.getElementById('sleep-timer-status');
+    if (!statusEl) return;
+    if (sleepTimerConfig.enabled) {
+        const mins = Math.floor(sleepTimerConfig.remainingSeconds / 60);
+        const secs = sleepTimerConfig.remainingSeconds % 60;
+        statusEl.innerText = `ON (残り ${mins}:${String(secs).padStart(2, '0')})`;
+        statusEl.style.color = 'var(--primary)';
+    } else {
+        statusEl.innerText = 'OFF';
+        statusEl.style.color = 'var(--text-muted)';
+    }
+}
+
+function setSleepTimer(minutes) {
+    if (!minutes || minutes <= 0) return;
+    clearSleepTimer();
+    
+    sleepTimerConfig.enabled = true;
+    sleepTimerConfig.totalSeconds = minutes * 60;
+    sleepTimerConfig.remainingSeconds = minutes * 60;
+    
+    sleepTimerInterval = setInterval(() => {
+        if (!sleepTimerConfig.enabled) return;
+        sleepTimerConfig.remainingSeconds--;
+        
+        // Update status UI if modal is open
+        updateSleepTimerStatusUI();
+        
+        if (sleepTimerConfig.remainingSeconds <= 0) {
+            // Timer expired - pause playback
+            mediaPause();
+            clearSleepTimer();
+            
+            // Visual feedback
+            if (el.heldKeysIndicator) {
+                el.heldKeysIndicator.innerText = '😴 Sleep Timer - 再生停止';
+                el.heldKeysIndicator.style.opacity = '1';
+                setTimeout(() => { if (heldKeysMap.size === 0) el.heldKeysIndicator.style.opacity = '0'; }, 4000);
+            }
+        }
+    }, 1000);
+    
+    updateSleepTimerStatusUI();
+    
+    // Feedback
+    if (el.heldKeysIndicator) {
+        el.heldKeysIndicator.innerText = `😴 Sleep: ${minutes}分`;
+        el.heldKeysIndicator.style.opacity = '1';
+        setTimeout(() => { if (heldKeysMap.size === 0) el.heldKeysIndicator.style.opacity = '0'; }, 2000);
+    }
+}
+
+function clearSleepTimer() {
+    if (sleepTimerInterval) {
+        clearInterval(sleepTimerInterval);
+        sleepTimerInterval = null;
+    }
+    sleepTimerConfig.enabled = false;
+    sleepTimerConfig.remainingSeconds = 0;
+    sleepTimerConfig.totalSeconds = 0;
+    updateSleepTimerStatusUI();
+}
+
+// Sleep Timer UI Event Handlers
+document.getElementById('btn-sleep-set').onclick = () => {
+    const input = document.getElementById('sleep-timer-input');
+    const minutes = parseInt(input.value, 10);
+    if (!minutes || minutes <= 0) {
+        alert('分数を入力してください');
+        return;
+    }
+    setSleepTimer(minutes);
+    document.getElementById('sleep-timer-modal').classList.remove('active');
+};
+
+document.getElementById('btn-sleep-clear').onclick = () => {
+    clearSleepTimer();
+    document.getElementById('sleep-timer-input').value = '';
+};
+
+// Preset buttons
+document.querySelectorAll('.sleep-preset-btn').forEach(btn => {
+    btn.onclick = () => {
+        const minutes = parseInt(btn.dataset.minutes, 10);
+        setSleepTimer(minutes);
+        document.getElementById('sleep-timer-modal').classList.remove('active');
+    };
+});
+
 // Final Sync Logic: Save manual edits back to queue
 if (el.nowTitle) {
     el.nowTitle.oninput = () => {
